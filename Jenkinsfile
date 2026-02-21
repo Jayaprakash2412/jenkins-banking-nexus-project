@@ -7,8 +7,11 @@ pipeline {
     }
 
     environment {
-        NEXUS_CREDENTIALS_ID = 'nexus'
-        NEXUS_URL = 'http://13.49.243.146:8081'
+        NEXUS_CREDENTIALS_ID  = 'nexus'
+        NEXUS_URL             = 'http://13.49.243.146:8081'
+        TOMCAT_CREDENTIALS_ID = 'tomcat'                        // Jenkins credential ID for Tomcat
+        TOMCAT_URL            = 'http://YOUR_TOMCAT_HOST:8080'  // Replace with your Tomcat EC2 IP/hostname
+        APP_CONTEXT_PATH      = '/banking-app'                  // URL context: http://host:8080/banking-app
     }
 
     stages {
@@ -81,7 +84,7 @@ pipeline {
 
         stage('Publish API to Nexus') {
             steps {
-                echo '📤 Stage 6: Publishing banking-api artifact to Nexus...'
+                echo '📤 Stage 6: Publishing banking-api WAR artifact to Nexus...'
                 withCredentials([usernamePassword(
                     credentialsId: "${NEXUS_CREDENTIALS_ID}",
                     usernameVariable: 'NEXUS_USER',
@@ -93,7 +96,30 @@ pipeline {
                             -Dpassword=${NEXUS_PASS}
                     """
                 }
-                echo '✅ banking-api-1.0-SNAPSHOT.jar published to Nexus!'
+                echo '✅ banking-app.war published to Nexus!'
+            }
+        }
+
+        stage('Deploy to Tomcat') {
+            steps {
+                echo '🚀 Stage 7: Deploying WAR to Tomcat Server...'
+                withCredentials([usernamePassword(
+                    credentialsId: "${TOMCAT_CREDENTIALS_ID}",
+                    usernameVariable: 'TOMCAT_USER',
+                    passwordVariable: 'TOMCAT_PASS'
+                )]) {
+                    sh """
+                        # Undeploy old version first (ignore error if not deployed yet)
+                        curl -s -u ${TOMCAT_USER}:${TOMCAT_PASS} \
+                            "${TOMCAT_URL}/manager/text/undeploy?path=${APP_CONTEXT_PATH}" || true
+
+                        # Deploy new WAR via Tomcat Manager REST API
+                        curl -v -f -u ${TOMCAT_USER}:${TOMCAT_PASS} \
+                            -T banking-api/target/banking-app.war \
+                            "${TOMCAT_URL}/manager/text/deploy?path=${APP_CONTEXT_PATH}&update=true"
+                    """
+                }
+                echo "✅ WAR deployed! Open: ${TOMCAT_URL}${APP_CONTEXT_PATH}"
             }
         }
     }
