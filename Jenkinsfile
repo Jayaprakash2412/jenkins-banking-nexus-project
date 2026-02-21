@@ -25,26 +25,33 @@ pipeline {
         stage('Build Core') {
             steps {
                 echo '🔨 Stage 2: Building banking-core module...'
-                sh 'mvn -pl banking-core clean install -DskipTests'
+                sh 'mvn -pl banking-core --also-make clean install -DskipTests'
                 echo '✅ banking-core built and installed to local .m2 cache.'
             }
         }
 
         stage('Deploy Core to Nexus') {
             steps {
-                echo '🚚 Stage 3: Deploying banking-core JAR to Nexus...'
+                echo '🚚 Stage 3: Deploying parent POM + banking-core JAR to Nexus...'
                 withCredentials([usernamePassword(
                     credentialsId: "${NEXUS_CREDENTIALS_ID}",
                     usernameVariable: 'NEXUS_USER',
                     passwordVariable: 'NEXUS_PASS'
                 )]) {
                     sh """
+                        # Step 3a: Deploy parent POM first (-N = non-recursive, root POM only)
+                        # Analogy: Ship the bank's master policy doc to Nexus warehouse first
+                        mvn deploy -N -DskipTests \
+                            -Dusername=${NEXUS_USER} \
+                            -Dpassword=${NEXUS_PASS}
+
+                        # Step 3b: Now deploy banking-core JAR
                         mvn -pl banking-core deploy -DskipTests \
                             -Dusername=${NEXUS_USER} \
                             -Dpassword=${NEXUS_PASS}
                     """
                 }
-                echo '✅ banking-core-1.0-SNAPSHOT.jar deployed to Nexus!'
+                echo '✅ Parent POM + banking-core-1.0-SNAPSHOT.jar deployed to Nexus!'
             }
         }
 
