@@ -7,15 +7,27 @@ pipeline {
     }
 
     environment {
+        // ── Nexus ──────────────────────────────────────────────────────
         NEXUS_CREDENTIALS_ID  = 'nexus'
         NEXUS_URL             = 'http://13.49.243.146:8081'
+
+        // ── Tomcat ─────────────────────────────────────────────────────
         TOMCAT_CREDENTIALS_ID = 'tomcat'                        // Jenkins credential ID for Tomcat
         TOMCAT_URL            = 'http://172.31.30.24:8080'  // Replace with your Tomcat EC2 IP/hostname
         APP_CONTEXT_PATH      = '/banking-app'                  // URL context: http://host:8080/banking-app
+
+        // ── SonarQube ──────────────────────────────────────────────────
+        SONAR_TOKEN           = credentials('sonarqube')        // Jenkins secret text credential ID: 'sonarqube'
+
+        // ── Slack ──────────────────────────────────────────────────────
+        SLACK_WEBHOOK_URL     = credentials('slack-webhook')    // Jenkins secret text credential ID: 'slack-webhook'
     }
 
     stages {
 
+        // ════════════════════════════════════════════════════════════════
+        // Stage 1 — Checkout
+        // ════════════════════════════════════════════════════════════════
         stage('Checkout') {
             steps {
                 echo '📦 Stage 1: Checking out source code from GitHub...'
@@ -25,6 +37,9 @@ pipeline {
             }
         }
 
+        // ════════════════════════════════════════════════════════════════
+        // Stage 2 — Build banking-core (shared business logic JAR)
+        // ════════════════════════════════════════════════════════════════
         stage('Build Core') {
             steps {
                 echo '🔨 Stage 2: Building banking-core module...'
@@ -33,6 +48,9 @@ pipeline {
             }
         }
 
+        // ════════════════════════════════════════════════════════════════
+        // Stage 3 — Deploy banking-core JAR + parent POM to Nexus
+        // ════════════════════════════════════════════════════════════════
         stage('Deploy Core to Nexus') {
             steps {
                 echo '🚚 Stage 3: Deploying parent POM + banking-core JAR to Nexus...'
@@ -58,6 +76,9 @@ pipeline {
             }
         }
 
+        // ════════════════════════════════════════════════════════════════
+        // Stage 4 — Build banking-api WAR (pulls banking-core from Nexus)
+        // ════════════════════════════════════════════════════════════════
         stage('Build API') {
             steps {
                 echo '🏗️ Stage 4: Building banking-api (pulls banking-core from Nexus)...'
@@ -66,6 +87,9 @@ pipeline {
             }
         }
 
+        // ════════════════════════════════════════════════════════════════
+        // Stage 5 — Unit Tests (JUnit 5)
+        // ════════════════════════════════════════════════════════════════
         stage('Test') {
             steps {
                 echo '🧪 Stage 5: Running unit tests on banking-api...'
@@ -77,14 +101,57 @@ pipeline {
                     junit 'banking-api/target/surefire-reports/*.xml'
                 }
                 failure {
-                    echo '❌ Tests failed! Fix before deploying to Nexus.'
+                    echo '❌ Tests failed! Fix before proceeding.'
                 }
             }
         }
 
+        // ════════════════════════════════════════════════════════════════
+        // Stage 6 — SonarQube Code Analysis
+        //   Scans banking-api source code for:
+        //     • Bugs & code smells
+        //     • Security vulnerabilities
+        //     • Code coverage (from JUnit results)
+        //   Requires: SonarQube server configured in Jenkins as 'sonarqube'
+        // ════════════════════════════════════════════════════════════════
+        stage('SonarQube Analysis') {
+            steps {
+                echo '🔍 Stage 6: Running SonarQube code analysis on banking-api...'
+                withSonarQubeEnv('sonarqube') {
+                    sh """
+                        mvn -pl banking-api sonar:sonar \
+                            -Dsonar.projectKey=banking-app \
+                            -Dsonar.projectName='Banking Application' \
+                            -Dsonar.token=${SONAR_TOKEN}
+                    """
+                }
+                echo '✅ SonarQube analysis submitted successfully.'
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════
+        // Stage 7 — SonarQube Quality Gate
+        //   Waits for SonarQube to finish processing the report and
+        //   checks if the project passes the Quality Gate.
+        //   Pipeline ABORTS if Quality Gate fails (bugs/vulnerabilities
+        //   exceed the threshold set in SonarQube).
+        // ════════════════════════════════════════════════════════════════
+        stage('Quality Gate') {
+            steps {
+                echo '🚦 Stage 7: Waiting for SonarQube Quality Gate result...'
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+                echo '✅ Quality Gate passed! Code meets the required standards.'
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════
+        // Stage 8 — Publish banking-api WAR to Nexus
+        // ════════════════════════════════════════════════════════════════
         stage('Publish API to Nexus') {
             steps {
-                echo '📤 Stage 6: Publishing banking-api WAR artifact to Nexus...'
+                echo '📤 Stage 8: Publishing banking-api WAR artifact to Nexus...'
                 withCredentials([usernamePassword(
                     credentialsId: "${NEXUS_CREDENTIALS_ID}",
                     usernameVariable: 'NEXUS_USER',
@@ -100,9 +167,14 @@ pipeline {
             }
         }
 
+        // ════════════════════════════════════════════════════════════════
+        // Stage 9 — Deploy WAR to Tomcat Server
+        //   Uses Tomcat Manager REST API (curl) to hot-deploy the WAR.
+        //   Requires: Tomcat Manager user with role 'manager-script'
+        // ════════════════════════════════════════════════════════════════
         stage('Deploy to Tomcat') {
             steps {
-                echo '🚀 Stage 7: Deploying WAR to Tomcat Server...'
+                echo '🚀 Stage 9: Deploying WAR to Tomcat Server...'
                 withCredentials([usernamePassword(
                     credentialsId: "${TOMCAT_CREDENTIALS_ID}",
                     usernameVariable: 'TOMCAT_USER',
@@ -122,18 +194,42 @@ pipeline {
                 echo "✅ WAR deployed! Open: ${TOMCAT_URL}${APP_CONTEXT_PATH}"
             }
         }
+
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // Post — Slack Notifications
+    //   Sends build result to Slack channel via Incoming Webhook.
+    //   Credential 'slack-webhook' must be a Jenkins Secret Text credential
+    //   containing the full Slack webhook URL.
+    // ══════════════════════════════════════════════════════════════════════
     post {
+
         success {
-            echo '🎉 Pipeline completed SUCCESSFULLY! Both JARs are now in the Nexus warehouse.'
+            sh """
+                curl -X POST -H 'Content-type: application/json' \
+                --data '{"text": ":white_check_mark: *BUILD SUCCESS* \\nJob: *${JOB_NAME}* \\nBuild: *#${BUILD_NUMBER}* \\nURL: ${BUILD_URL}"}' \
+                ${SLACK_WEBHOOK_URL}
+            """
         }
+
         failure {
-            echo '❌ Pipeline FAILED! Check the logs above.'
+            sh """
+                curl -X POST -H 'Content-type: application/json' \
+                --data '{"text": ":x: *BUILD FAILED* \\nJob: *${JOB_NAME}* \\nBuild: *#${BUILD_NUMBER}* \\nURL: ${BUILD_URL}"}' \
+                ${SLACK_WEBHOOK_URL}
+            """
         }
+
         always {
+            sh """
+                curl -X POST -H 'Content-type: application/json' \
+                --data '{"text": ":bell: *BUILD COMPLETED* \\nJob: *${JOB_NAME}* \\nStatus: *${currentBuild.currentResult}* \\nBuild: *#${BUILD_NUMBER}* \\nURL: ${BUILD_URL}"}' \
+                ${SLACK_WEBHOOK_URL}
+            """
             echo '🧹 Cleaning workspace...'
             cleanWs()
         }
+
     }
 }
