@@ -35,6 +35,11 @@ pipeline {
         // Nexus credentials ID — stored in Jenkins Credentials Manager.
         // Never hardcode passwords! Think of this like a key card
         // stored in the security office — referenced by name only.
+<<<<<<< Old File
+        NEXUS_CREDENTIALS_ID = 'nexus-credentials'
+=======
+        NEXUS_CREDENTIALS_ID = 'nexus'
+>>>>>>> External Changes
         NEXUS_CREDENTIALS_ID = 'nexus'
 
         // Nexus server URL

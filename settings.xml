@@ -41,8 +41,8 @@
     -->
     <server>
       <id>nexus-snapshots</id>
-      <username>YOUR_NEXUS_USERNAME</username>
-      <password>YOUR_NEXUS_PASSWORD</password>
+      <username>admin</username>
+      <password>Avinash@12345</password>
     </server>
 
     <!--
@@ -52,8 +52,8 @@
     -->
     <server>
       <id>nexus-releases</id>
-      <username>YOUR_NEXUS_USERNAME</username>
-      <password>YOUR_NEXUS_PASSWORD</password>
+      <username>admin</username>
+      <password>Avinash@12345</password>
     </server>
 
   </servers>
