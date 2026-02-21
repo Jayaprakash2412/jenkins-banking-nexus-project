@@ -27,15 +27,15 @@ pipeline {
     //   Jenkins → Manage Jenkins → Global Tool Configuration
     // ============================================================
     tools {
-        maven 'Maven-3.9'       // Name of your Maven installation in Jenkins
-        jdk   'Java-21'         // Name of your JDK installation in Jenkins
+        maven 'maven'           // Matches the Maven install name in Jenkins Global Tool Config
+        // JDK is installed system-wide (not configured as a Jenkins tool — skipped)
     }
 
     environment {
         // Nexus credentials ID — stored in Jenkins Credentials Manager.
         // Never hardcode passwords! Think of this like a key card
         // stored in the security office — referenced by name only.
-        NEXUS_CREDENTIALS_ID = 'nexus-credentials'
+        NEXUS_CREDENTIALS_ID = 'nexus'
 
         // Nexus server URL
         NEXUS_URL = 'http://13.49.243.146:8081'
