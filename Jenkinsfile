@@ -9,7 +9,7 @@ pipeline {
     environment {
         // ── Nexus ──────────────────────────────────────────────────────
         NEXUS_CREDENTIALS_ID  = 'nexus'
-        NEXUS_URL             = 'http://13.49.243.146:8081'
+        NEXUS_URL             = 'http://172.31.43.52:8081'
 
         // ── Tomcat ─────────────────────────────────────────────────────
         TOMCAT_CREDENTIALS_ID = 'tomcat'                        // Jenkins credential ID for Tomcat
