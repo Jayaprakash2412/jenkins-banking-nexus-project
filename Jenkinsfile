@@ -19,8 +19,7 @@ pipeline {
         // ── SonarQube ──────────────────────────────────────────────────
         SONAR_TOKEN           = credentials('sonarqube')        // Jenkins secret text credential ID: 'sonarqube'
 
-        // ── Slack ──────────────────────────────────────────────────────
-        SLACK_WEBHOOK_URL     = credentials('slack-webhook')    // Jenkins secret text credential ID: 'slack-webhook'
+       
     }
 
     stages {
@@ -203,39 +202,8 @@ pipeline {
 
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    // Post — Slack Notifications
-    //   Sends build result to Slack channel via Incoming Webhook.
-    //   Credential 'slack-webhook' must be a Jenkins Secret Text credential
-    //   containing the full Slack webhook URL.
-    // ══════════════════════════════════════════════════════════════════════
-    post {
+   
 
-        success {
-            sh """
-                curl -X POST -H 'Content-type: application/json' \
-                --data '{"text": ":white_check_mark: *BUILD SUCCESS* \\nJob: *${JOB_NAME}* \\nBuild: *#${BUILD_NUMBER}* \\nURL: ${BUILD_URL}"}' \
-                ${SLACK_WEBHOOK_URL}
-            """
-        }
-
-        failure {
-            sh """
-                curl -X POST -H 'Content-type: application/json' \
-                --data '{"text": ":x: *BUILD FAILED* \\nJob: *${JOB_NAME}* \\nBuild: *#${BUILD_NUMBER}* \\nURL: ${BUILD_URL}"}' \
-                ${SLACK_WEBHOOK_URL}
-            """
-        }
-
-        always {
-            sh """
-                curl -X POST -H 'Content-type: application/json' \
-                --data '{"text": ":bell: *BUILD COMPLETED* \\nJob: *${JOB_NAME}* \\nStatus: *${currentBuild.currentResult}* \\nBuild: *#${BUILD_NUMBER}* \\nURL: ${BUILD_URL}"}' \
-                ${SLACK_WEBHOOK_URL}
-            """
-            echo '🧹 Cleaning workspace...'
-            cleanWs()
-        }
-
+        
     }
 }
