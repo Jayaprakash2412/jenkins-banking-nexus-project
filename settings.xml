@@ -85,7 +85,7 @@
       <!-- Route ALL repos (*) through Nexus -->
       <mirrorOf>*</mirrorOf>
       <!-- Use the 'maven-public' group repo (includes Central proxy) -->
-      <url>http://172.31.43.52:8081/repository/maven-public/</url>
+      <url>http://172.31.29.20:8081/repository/maven-public/</url>
     </mirror>
   </mirrors>
 
