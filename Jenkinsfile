@@ -177,7 +177,7 @@ pipeline {
         //   Uses Tomcat Manager REST API (curl) to hot-deploy the WAR.
         //   Requires: Tomcat Manager user with role 'manager-script'
         // ════════════════════════════════════════════════════════════════
-        stage('Deploy to Tomcat') {
+                stage('Deploy to Tomcat') {
             steps {
                 echo '🚀 Stage 9: Deploying WAR to Tomcat Server...'
                 withCredentials([usernamePassword(
@@ -186,11 +186,9 @@ pipeline {
                     passwordVariable: 'TOMCAT_PASS'
                 )]) {
                     sh """
-                        # Undeploy old version first (ignore error if not deployed yet)
                         curl -s -u ${TOMCAT_USER}:${TOMCAT_PASS} \
                             "${TOMCAT_URL}/manager/text/undeploy?path=${APP_CONTEXT_PATH}" || true
 
-                        # Deploy new WAR via Tomcat Manager REST API
                         curl -v -f -u ${TOMCAT_USER}:${TOMCAT_PASS} \
                             -T banking-api/target/banking-app.war \
                             "${TOMCAT_URL}/manager/text/deploy?path=${APP_CONTEXT_PATH}&update=true"
@@ -199,11 +197,5 @@ pipeline {
                 echo "✅ WAR deployed! Open: ${TOMCAT_URL}${APP_CONTEXT_PATH}"
             }
         }
-
-    }
-
-   
-
-        
     }
 }
