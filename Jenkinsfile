@@ -9,11 +9,11 @@ pipeline {
     environment {
         // ── Nexus ──────────────────────────────────────────────────────
         NEXUS_CREDENTIALS_ID  = 'nexus'
-        NEXUS_URL             = 'http://172.31.29.20:8081'
+        NEXUS_URL             = 'http://3.138.122.3:8081'
 
         // ── Tomcat ─────────────────────────────────────────────────────
         TOMCAT_CREDENTIALS_ID = 'tomcat'                        // Jenkins credential ID for Tomcat
-        TOMCAT_URL            = 'http://172.31.38.49:8080'  // Replace with your Tomcat EC2 IP/hostname
+        TOMCAT_URL            = 'http://3.22.217.67:8080'  // Replace with your Tomcat EC2 IP/hostname
         APP_CONTEXT_PATH      = '/banking-app'                  // URL context: http://host:8080/banking-app
 
         // ── SonarQube ──────────────────────────────────────────────────
