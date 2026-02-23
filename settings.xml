@@ -42,7 +42,7 @@
     <server>
       <id>nexus-snapshots</id>
       <username>admin</username>
-      <password>Avinash@12345</password>
+      <password>Prakash2412@3h0</password>
     </server>
 
     <!--
@@ -53,7 +53,7 @@
     <server>
       <id>nexus-releases</id>
       <username>admin</username>
-      <password>Avinash@12345</password>
+      <password>Prakash2412@3h0</password>
     </server>
 
   </servers>
@@ -85,7 +85,7 @@
       <!-- Route ALL repos (*) through Nexus -->
       <mirrorOf>*</mirrorOf>
       <!-- Use the 'maven-public' group repo (includes Central proxy) -->
-      <url>http://172.31.29.20:8081/repository/maven-public/</url>
+      <url>http://3.138.122.3:8081/repository/maven-public/</url>
     </mirror>
   </mirrors>
 
